@@ -15,6 +15,7 @@
 # along with this program; see the file COPYING. If not, write to the
 # Free Software Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 """Recipe postgres"""
+import logging
 import os
 import time
 from random import choice
@@ -55,6 +56,7 @@ class Recipe(object):
             pwd = ''.join(choice(pwdchars) for i in range(12))
             passwd.append(pwd)
             return pwd
+        logger = logging.getLogger(self.name)
         pgdata = self.options['pgdata']
         pgdata_exists = os.path.exists(pgdata) 
             
@@ -66,9 +68,9 @@ class Recipe(object):
         
         port = self.options.get('port',None)
         if port:
-            print " !!!!!!!!!!!! "
-            print " Warniong port is not tested at the moment"
-            print " !!!!!!!!!!!! "
+            logger.warning( " !!!!!!!!!!!! " )
+            logger.warning( " Warning port is not tested at the moment" )
+            logger.warning( " !!!!!!!!!!!! " )
             # Update the port setting and start up the server
             #FIXME we need to get pgdata from initdb option
             conffile = '%s/postgresql.conf' % pgdata
@@ -95,7 +97,7 @@ class Recipe(object):
         #start/restart your engine !
         PIDFILE = '%s/postmaster.pid' % pgdata
         if os.path.exists(pg_ctl) and os.path.exists(PIDFILE):
-            print 'Shutting down PostgreSQL server...'
+            logger.info( 'Shutting down PostgreSQL server...' )
             system('%s stop' % pg_ctl)
             while os.path.exists(PIDFILE):
                 time.sleep(1)
@@ -135,5 +137,6 @@ class Recipe(object):
 
     def update(self):
         """updater"""
-        pass
+        logger = logging.getLogger(self.name)
+        logger.info('update psotgres')
 
