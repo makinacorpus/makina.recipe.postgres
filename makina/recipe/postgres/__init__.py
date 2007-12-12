@@ -45,9 +45,16 @@ class Recipe(object):
         
         """
         self.buildout, self.name, self.options = buildout, name, options
+        options['location'] = options['prefix'] = os.path.join(
+            buildout['buildout']['parts-directory'],
+            name)
 
     def install(self):
         """installer"""
+        os.mkdir(self.options['location'])
+        f = open(os.path(self.options['location'], 'README.txt'),'w')
+        f.write('remove this file to reinstall the parts')
+        f.close()
         def system(cmd):
             if os.system(cmd):
                 raise RuntimeError('Error running command: %s' % cmd)
@@ -56,6 +63,7 @@ class Recipe(object):
             pwd = ''.join(choice(pwdchars) for i in range(12))
             passwd.append(pwd)
             return pwd
+        
         logger = logging.getLogger(self.name)
         pgdata = self.options['pgdata']
         pgdata_exists = os.path.exists(pgdata) 
@@ -133,7 +141,9 @@ class Recipe(object):
                 try: system('%s/%s' % (bin, cmd))
                 except RuntimeError,e:
                     print e
-        return tuple()
+        print self.options['location']
+        dest = self.options['location']
+        return dest
 
     def update(self):
         """updater"""
