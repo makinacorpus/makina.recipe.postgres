@@ -111,6 +111,7 @@ class Recipe(object):
                 except RuntimeError,e:
                     print "an error occured while adding this user to the database"
                     print e
+        
         createdbs = self.options.get('createdbs', None)
         if createdbs:
             createdbs = createdbs.split(os.linesep)
@@ -126,7 +127,10 @@ class Recipe(object):
         if cmds:
             cmds = cmds.split(os.linesep)
             for cmd in cmds:
-                system(cmd)
+                if not cmd: continue
+                try: system('%s/%s' % (bin, cmd))
+                except RuntimeError,e:
+                    print e
         return tuple()
 
     def update(self):
