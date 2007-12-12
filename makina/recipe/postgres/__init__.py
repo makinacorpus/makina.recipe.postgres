@@ -86,41 +86,45 @@ class Recipe(object):
         
         # Create a wrapper script for pg_ctl
         
-        # Need to knwo where is 
-        script = open('%s/pg_ctl'%(buildout_bin_path) , 'w')
+        # Need to knwo where is
+        pg_ctl = '%s/pg_ctl'%(buildout_bin_path)
+        script = open(pg_ctl , 'w')
         script.write(pg_ctl_script % (pgdata, bin))
         script.close()
-        pg_ctl = script
         
-        #start your engine !
-        system('%s/pg_ctl start'%(buildout_bin_path))
+        #start/restart your engine !
+        PIDFILE = '%s/postmaster.pid' % pgdata
+        if os.path.exists(pg_ctl) and os.path.exists(PIDFILE):
+            print 'Shutting down PostgreSQL server...'
+            system('%s stop' % pg_ctl)
+            while os.path.exists(PIDFILE):
+                time.sleep(1)
+        system('%s start'%(pg_ctl))
         time.sleep(4)
         
         createusers = self.options.get('createusers',None)
         if createusers:
-            createusers = createusers.split()
+            createusers = createusers.split(os.linesep)
             for user in createusers:
-                print "                "
-                print "                "
-                print "                "
-                print "                "
-                print "                "
-                print "user to add : %s" % user
-                print "                "
-                print "                "
-                print "                "
-                print "                "
-                print "                "
-                system('%s/createuser %s' % (bin, user) )
-        
+                if not user:continue
+                try: system('%s/createuser %s' % (bin, user) )
+                except RuntimeError,e:
+                    print "an error occured while adding this user to the database"
+                    print e
         createdbs = self.options.get('createdbs', None)
         if createdbs:
-            createdbs = createdbs.split()
+            createdbs = createdbs.split(os.linesep)
             for db in createdbs:
-                system('%s/createdb %s' % (db) )
+                if not db:continue
+                print "db to add : %s" % db
+                try: system('%s/createdb %s' % (bin, db) )
+                except RuntimeError,e:
+                    print "an error occured while adding a db"
+                    print e
+        
         cmds = self.options.get('cmds', None)
         if cmds:
-            cmds = cmds.split()
+            cmds = cmds.split(os.linesep)
             for cmd in cmds:
                 system(cmd)
         return tuple()
