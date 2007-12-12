@@ -56,10 +56,12 @@ class Recipe(object):
             passwd.append(pwd)
             return pwd
         pgdata = self.options['pgdata']
+        pgdata_exists = os.path.exists(pgdata) 
+            
         bin = self.options.get('bin','')
         #TODO: manage path in a better way to handle PATH case
         initdb = self.options.get('initdb',None)
-        if initdb:
+        if initdb and not pgdata_exists:
             system('%s/initdb %s' % (bin, initdb) )
         
         port = self.options.get('port',None)
