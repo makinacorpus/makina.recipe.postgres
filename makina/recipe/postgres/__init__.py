@@ -51,18 +51,17 @@ class Recipe(object):
 
     def install(self):
         """installer"""
-        os.mkdir(self.options['location'])
-        f = open(os.path(self.options['location'], 'README.txt'),'w')
-        f.write('remove this file to reinstall the parts')
-        f.close()
+        already_installed = False
+        if not os.path.exists(self.options['location']):
+            os.mkdir(self.options['location'])
+        f = open(os.path.join(self.options['location'], 'errors.log'),'w')
+        error_occured = False
+        error = None
         def system(cmd):
             if os.system(cmd):
+                error_occured = True
+                error = cmd
                 raise RuntimeError('Error running command: %s' % cmd)
-        def generatepwd():
-            """Return a password"""
-            pwd = ''.join(choice(pwdchars) for i in range(12))
-            passwd.append(pwd)
-            return pwd
         
         logger = logging.getLogger(self.name)
         pgdata = self.options['pgdata']
@@ -119,19 +118,20 @@ class Recipe(object):
                 if not user:continue
                 try: system('%s/createuser %s' % (bin, user) )
                 except RuntimeError,e:
-                    print "an error occured while adding this user to the database"
-                    print e
+                    f.write("An error has occured while adding user %s %s"%(user,os.linesep))
+                    f.write('%s'%e)
+                    f.write(os.linesep)
         
         createdbs = self.options.get('createdbs', None)
         if createdbs:
             createdbs = createdbs.split(os.linesep)
             for db in createdbs:
                 if not db:continue
-                print "db to add : %s" % db
                 try: system('%s/createdb %s' % (bin, db) )
                 except RuntimeError,e:
-                    print "an error occured while adding a db"
-                    print e
+                    f.write("An error has occured while adding db %s %s"%(db,os.linesep))
+                    f.write('%s'%e)
+                    f.write(os.linesep)
         
         cmds = self.options.get('cmds', None)
         if cmds:
@@ -139,14 +139,17 @@ class Recipe(object):
             for cmd in cmds:
                 if not cmd: continue
                 try: system('%s/%s' % (bin, cmd))
-                except RuntimeError,e:
-                    print e
-        print self.options['location']
+                except RuntimeError, e:
+                    f.write("An error has occured while executing cmd %s %s"%(cmd,os.linesep))
+                    f.write('%s'%e)
+                    f.write(os.linesep)
         dest = self.options['location']
+        f.close() #close the readme
+        if error_occured:
+            logger.error('One or more error has occured. Please check log file %s' % (os.path.join(self.options['location'], 'errors.log')))
+            raise RuntimeError , error
         return dest
 
     def update(self):
         """updater"""
-        logger = logging.getLogger(self.name)
-        logger.info('update psotgres')
-
+        pass
