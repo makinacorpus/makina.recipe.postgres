@@ -39,9 +39,7 @@ class Recipe(object):
           - bin : path to bin folder that contains postgres binaries
           - port : port on wich postgres is started and listen
           - initdb : specify the argument to pass to the initdb command
-          - createusers : list of args to pass to createuser. One line by user to create
-          - createdb : list of args to pass to createdb cmd. One line by db
-          - cmds : list of cmd to execute after all those init
+          - cmds : list of psql cmd to execute after all those init
         
         """
         self.buildout, self.name, self.options = buildout, name, options
@@ -52,17 +50,17 @@ class Recipe(object):
     def install(self):
         """installer"""
         already_installed = False
+        err_path = os.path.join(self.options['location'], 'errors.log')
+        out_path = os.path.join(self.options['location'], 'cmds.log')
         if not os.path.exists(self.options['location']):
             os.mkdir(self.options['location'])
-        f = open(os.path.join(self.options['location'], 'errors.log'),'w')
         error_occured = False
         error = None
         def system(cmd):
-            if os.system(cmd):
+            code = os.system(cmd)
+            if code:
                 error_occured = True
-                error = cmd
                 raise RuntimeError('Error running command: %s' % cmd)
-        
         logger = logging.getLogger(self.name)
         pgdata = self.options['pgdata']
         pgdata_exists = os.path.exists(pgdata) 
@@ -111,28 +109,28 @@ class Recipe(object):
         system('%s start'%(pg_ctl))
         time.sleep(4)
         
-        createusers = self.options.get('createusers',None)
-        if createusers:
-            createusers = createusers.split(os.linesep)
-            for user in createusers:
-                if not user:continue
-                try: system('%s/createuser %s' % (bin, user) )
-                except RuntimeError,e:
-                    f.write("An error has occured while adding user %s %s"%(user,os.linesep))
-                    f.write('%s'%e)
-                    f.write(os.linesep)
-        
-        createdbs = self.options.get('createdbs', None)
-        if createdbs:
-            createdbs = createdbs.split(os.linesep)
-            for db in createdbs:
-                if not db:continue
-                try: system('%s/createdb %s' % (bin, db) )
-                except RuntimeError,e:
-                    f.write("An error has occured while adding db %s %s"%(db,os.linesep))
-                    f.write('%s'%e)
-                    f.write(os.linesep)
-        
+#        createusers = self.options.get('createusers',None)
+#        if createusers:
+#            createusers = createusers.split(os.linesep)
+#            for user in createusers:
+#                if not user:continue
+#                try: system('%s/createuser %s' % (bin, user) )
+#                except RuntimeError,e:
+#                    f.write("An error has occured while adding user %s %s"%(user,os.linesep))
+#                    f.write('%s'%e)
+#                    f.write(os.linesep)
+#        
+#        createdbs = self.options.get('createdbs', None)
+#        if createdbs:
+#            createdbs = createdbs.split(os.linesep)
+#            for db in createdbs:
+#                if not db:continue
+#                try: system('%s/createdb %s' % (bin, db) )
+#                except RuntimeError,e:
+#                    f.write("An error has occured while adding db %s %s"%(db,os.linesep))
+#                    f.write('%s'%e)
+#                    f.write(os.linesep)
+#        
         cmds = self.options.get('cmds', None)
         if cmds:
             cmds = cmds.split(os.linesep)
@@ -140,11 +138,9 @@ class Recipe(object):
                 if not cmd: continue
                 try: system('%s/%s' % (bin, cmd))
                 except RuntimeError, e:
-                    f.write("An error has occured while executing cmd %s %s"%(cmd,os.linesep))
-                    f.write('%s'%e)
-                    f.write(os.linesep)
+                    pass
         dest = self.options['location']
-        f.close() #close the readme
+
         if error_occured:
             logger.error('One or more error has occured. Please check log file %s' % (os.path.join(self.options['location'], 'errors.log')))
             raise RuntimeError , error
